@@ -1,0 +1,36 @@
+name: Daily Price Tracker
+
+on:
+  schedule:
+    - cron: "0 8 * * *"       # Every day at 08:00 UTC — adjust to your timezone
+  workflow_dispatch:           # Also allows manual trigger from GitHub UI
+
+permissions:
+  contents: write              # needed to commit prices.json back to the repo
+
+jobs:
+  fetch-prices:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install requests feedparser
+
+      - name: Run price fetcher
+        run: python fetch_prices.py
+
+      - name: Commit updated prices
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/prices.json items.json
+          git diff --cached --quiet || git commit -m "chore: update prices $(date -u +%Y-%m-%d)"
+          git push
